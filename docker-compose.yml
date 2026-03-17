@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: ./backend
+    expose:
+      - "3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - DB_PATH=/app/data/data.db
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@drugansdrums.com}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
+    volumes:
+      - app-data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    expose:
+      - "80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  app-data:
+    name: dts-app-data
