@@ -69,4 +69,9 @@ if (!existingRecipients) {
   db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('recipients', '[]');
 }
 
+const existingTz = db.prepare('SELECT key FROM settings WHERE key = ?').get('send_timezone');
+if (!existingTz) {
+  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('send_timezone', 'America/New_York');
+}
+
 module.exports = db;

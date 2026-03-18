@@ -163,13 +163,15 @@ body {
 
 .form-group input,
 .form-group textarea,
-.form-group select {
+.form-group select,
+select {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
+  background: white;
 }
 
 .form-group textarea {

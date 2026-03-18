@@ -31,13 +31,24 @@
     <div v-if="auth.isSuperAdmin" class="card">
       <h2>Daily Send Time</h2>
       <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
-        The time of day the reminder email will be sent (server time).
+        The time and timezone the reminder email will be sent each day.
       </p>
-      <div style="display: flex; gap: 8px; align-items: end;">
+      <div style="display: flex; gap: 8px; align-items: end; flex-wrap: wrap;">
         <div class="form-group" style="margin-bottom: 0;">
+          <label style="display:block; font-size:13px; color:#6b7280; margin-bottom:4px;">Time</label>
           <input v-model="sendTime" type="time" />
         </div>
-        <button class="btn btn-primary" @click="saveSendTime" :disabled="savingTime">
+        <div class="form-group" style="margin-bottom: 0; min-width: 260px;">
+          <label style="display:block; font-size:13px; color:#6b7280; margin-bottom:4px;">Timezone</label>
+          <select v-model="sendTimezone">
+            <optgroup v-for="group in timezoneGroups" :key="group.label" :label="group.label">
+              <option v-for="tz in group.zones" :key="tz.value" :value="tz.value">
+                {{ tz.label }}
+              </option>
+            </optgroup>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="align-self: end;" @click="saveSendTime" :disabled="savingTime">
           {{ savingTime ? 'Saving...' : 'Save Time' }}
         </button>
       </div>
@@ -110,7 +121,71 @@ const auth = useAuthStore();
 
 const recipients = ref([]);
 const sendTime = ref('09:00');
+const sendTimezone = ref(Intl.DateTimeFormat().resolvedOptions().timeZone);
 const inviteEmail = ref('');
+
+// Grouped IANA timezone list
+const timezoneGroups = [
+  {
+    label: 'United States',
+    zones: [
+      { value: 'America/New_York',    label: 'Eastern Time (ET)' },
+      { value: 'America/Chicago',     label: 'Central Time (CT)' },
+      { value: 'America/Denver',      label: 'Mountain Time (MT)' },
+      { value: 'America/Phoenix',     label: 'Mountain Time - Arizona (no DST)' },
+      { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+      { value: 'America/Anchorage',   label: 'Alaska Time (AKT)' },
+      { value: 'Pacific/Honolulu',    label: 'Hawaii Time (HT)' },
+    ],
+  },
+  {
+    label: 'Europe',
+    zones: [
+      { value: 'UTC',                   label: 'UTC' },
+      { value: 'Europe/London',         label: 'London (GMT/BST)' },
+      { value: 'Europe/Paris',          label: 'Central European (CET/CEST)' },
+      { value: 'Europe/Helsinki',       label: 'Eastern European (EET/EEST)' },
+      { value: 'Europe/Moscow',         label: 'Moscow (MSK)' },
+    ],
+  },
+  {
+    label: 'Asia & Pacific',
+    zones: [
+      { value: 'Asia/Dubai',      label: 'Gulf Standard Time (GST)' },
+      { value: 'Asia/Karachi',    label: 'Pakistan (PKT)' },
+      { value: 'Asia/Kolkata',    label: 'India (IST)' },
+      { value: 'Asia/Dhaka',      label: 'Bangladesh (BST)' },
+      { value: 'Asia/Bangkok',    label: 'Indochina (ICT)' },
+      { value: 'Asia/Singapore',  label: 'Singapore/Malaysia (SGT)' },
+      { value: 'Asia/Shanghai',   label: 'China (CST)' },
+      { value: 'Asia/Tokyo',      label: 'Japan (JST)' },
+      { value: 'Australia/Sydney', label: 'Sydney (AEST/AEDT)' },
+      { value: 'Pacific/Auckland', label: 'New Zealand (NZST/NZDT)' },
+    ],
+  },
+  {
+    label: 'Americas',
+    zones: [
+      { value: 'America/Toronto',         label: 'Toronto (ET)' },
+      { value: 'America/Vancouver',       label: 'Vancouver (PT)' },
+      { value: 'America/Mexico_City',     label: 'Mexico City (CST/CDT)' },
+      { value: 'America/Bogota',          label: 'Colombia (COT)' },
+      { value: 'America/Lima',            label: 'Peru (PET)' },
+      { value: 'America/Santiago',        label: 'Chile (CLT/CLST)' },
+      { value: 'America/Sao_Paulo',       label: 'Brazil - São Paulo (BRT/BRST)' },
+      { value: 'America/Argentina/Buenos_Aires', label: 'Argentina (ART)' },
+    ],
+  },
+  {
+    label: 'Africa',
+    zones: [
+      { value: 'Africa/Cairo',        label: 'Egypt (EET)' },
+      { value: 'Africa/Johannesburg', label: 'South Africa (SAST)' },
+      { value: 'Africa/Lagos',        label: 'West Africa (WAT)' },
+      { value: 'Africa/Nairobi',      label: 'East Africa (EAT)' },
+    ],
+  },
+];
 const inviteLink = ref('');
 const users = ref([]);
 
@@ -134,6 +209,7 @@ async function loadSettings() {
     recipients.value = JSON.parse(data.recipients || '[]');
     if (recipients.value.length === 0) recipients.value = [''];
     sendTime.value = data.send_time || '09:00';
+    if (data.send_timezone) sendTimezone.value = data.send_timezone;
   } catch {
     error.value = 'Failed to load settings';
   }
@@ -177,7 +253,7 @@ async function saveSendTime() {
   savingTime.value = true;
   error.value = '';
   try {
-    await api.put('/settings/send-time', { time: sendTime.value });
+    await api.put('/settings/send-time', { time: sendTime.value, timezone: sendTimezone.value });
     success.value = 'Send time updated';
     clearMessages();
   } catch (err) {

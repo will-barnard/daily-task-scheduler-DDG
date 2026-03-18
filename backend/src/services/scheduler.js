@@ -16,16 +16,18 @@ function scheduleFromSettings() {
   }
 
   const timeSetting = db.prepare('SELECT value FROM settings WHERE key = ?').get('send_time');
+  const tzSetting = db.prepare('SELECT value FROM settings WHERE key = ?').get('send_timezone');
   const time = timeSetting ? timeSetting.value : '09:00';
+  const timezone = tzSetting ? tzSetting.value : 'America/New_York';
   const [hours, minutes] = time.split(':');
 
-  // Schedule cron job: "MM HH * * *" = every day at HH:MM
+  // Schedule cron job: "MM HH * * *" = every day at HH:MM in the configured timezone
   const cronExpr = `${parseInt(minutes)} ${parseInt(hours)} * * *`;
-  console.log(`Scheduler: Daily email scheduled at ${time} (cron: ${cronExpr})`);
+  console.log(`Scheduler: Daily email scheduled at ${time} ${timezone} (cron: ${cronExpr})`);
 
   currentJob = cron.schedule(cronExpr, () => {
     sendDailyEmail();
-  });
+  }, { timezone });
 }
 
 async function sendDailyEmail() {

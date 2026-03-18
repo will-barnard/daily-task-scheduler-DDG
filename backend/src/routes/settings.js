@@ -30,14 +30,18 @@ router.put('/recipients', authenticate, (req, res) => {
   res.json({ message: 'Recipients updated' });
 });
 
-// Update send time (super admin only)
+// Update send time + timezone (super admin only)
 router.put('/send-time', authenticate, requireSuperAdmin, (req, res) => {
-  const { time } = req.body;
+  const { time, timezone } = req.body;
   if (!time || !/^\d{2}:\d{2}$/.test(time)) {
     return res.status(400).json({ error: 'Time must be in HH:MM format' });
   }
+  if (!timezone) {
+    return res.status(400).json({ error: 'Timezone is required' });
+  }
 
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('send_time', time);
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('send_timezone', timezone);
   scheduleFromSettings();
   res.json({ message: 'Send time updated' });
 });
