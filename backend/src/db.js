@@ -48,10 +48,20 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS inbox_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     product_name TEXT NOT NULL,
-    edit_url TEXT,
+    product_url TEXT,
+    product_id TEXT,
+    condition TEXT,
     received_at TEXT DEFAULT (datetime('now'))
   );
 `);
+
+// Migrate inbox_items for deployments that have the old schema
+const inboxCols = db.prepare("PRAGMA table_info(inbox_items)").all().map((c) => c.name);
+if (inboxCols.includes('edit_url') && !inboxCols.includes('product_url')) {
+  db.exec('ALTER TABLE inbox_items RENAME COLUMN edit_url TO product_url');
+}
+if (!inboxCols.includes('product_id'))  db.exec('ALTER TABLE inbox_items ADD COLUMN product_id TEXT');
+if (!inboxCols.includes('condition'))   db.exec('ALTER TABLE inbox_items ADD COLUMN condition TEXT');
 
 // Seed default super admin if not exists
 const existingAdmin = db.prepare('SELECT id FROM users WHERE role = ?').get('superadmin');

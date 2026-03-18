@@ -19,8 +19,11 @@
         <div class="inbox-header">
           <div>
             <div class="inbox-product-name">{{ item.product_name }}</div>
-            <div class="inbox-meta">Received {{ formatDate(item.received_at) }}</div>
-            <a v-if="item.edit_url" :href="item.edit_url" target="_blank" rel="noopener" class="inbox-edit-link">
+            <div class="inbox-meta">
+              Received {{ formatDate(item.received_at) }}
+              <span v-if="item.condition" class="condition-badge">{{ item.condition }}</span>
+            </div>
+            <a v-if="item.product_url" :href="item.product_url" target="_blank" rel="noopener" class="inbox-edit-link">
               Open in Shopify →
             </a>
           </div>
@@ -220,6 +223,19 @@ onMounted(loadItems);
 
 .inbox-edit-link:hover {
   text-decoration: underline;
+}
+
+.condition-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .approve-form {

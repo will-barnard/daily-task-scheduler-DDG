@@ -38,19 +38,18 @@ router.post('/shopify', (req, res) => {
   console.log('[Shopify Flow] Incoming payload:');
   console.log(JSON.stringify(payload, null, 2));
 
-  const { product_name, edit_url } = payload;
+  const { product_name, product_url, product_id, condition } = payload;
 
   if (!product_name) {
     console.warn('[Shopify Flow] Missing product_name in payload');
     return res.status(400).json({ error: 'product_name is required' });
   }
 
-  db.prepare('INSERT INTO inbox_items (product_name, edit_url) VALUES (?, ?)').run(
-    product_name,
-    edit_url || null
-  );
+  db.prepare(
+    'INSERT INTO inbox_items (product_name, product_url, product_id, condition) VALUES (?, ?, ?, ?)'
+  ).run(product_name, product_url || null, product_id || null, condition || null);
 
-  console.log(`[Shopify Flow] Added "${product_name}" to inbox`);
+  console.log(`[Shopify Flow] Added "${product_name}" to inbox (condition: ${condition || 'N/A'})`);
   res.status(200).json({ received: true });
 });
 
