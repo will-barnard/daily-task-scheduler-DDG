@@ -30,8 +30,8 @@ router.post('/:id/approve', authenticate, (req, res) => {
   }
 
   const result = db.prepare(
-    'INSERT INTO tasks (title, description, send_date, created_by) VALUES (?, ?, ?, ?)'
-  ).run(title, description || '', send_date, req.user.id);
+    'INSERT INTO tasks (title, description, send_date, product_url, created_by) VALUES (?, ?, ?, ?, ?)'
+  ).run(title, description || '', send_date, item.product_url || null, req.user.id);
 
   db.prepare('DELETE FROM inbox_items WHERE id = ?').run(req.params.id);
 

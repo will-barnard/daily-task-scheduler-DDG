@@ -33,6 +33,12 @@ const routes = [
     meta: { auth: true },
   },
   {
+    path: '/roundup',
+    name: 'Roundup',
+    component: () => import('../views/RoundupView.vue'),
+    meta: { auth: true },
+  },
+  {
     path: '/settings',
     name: 'Settings',
     component: () => import('../views/SettingsView.vue'),

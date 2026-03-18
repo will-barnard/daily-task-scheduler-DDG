@@ -35,6 +35,8 @@ db.exec(`
     title TEXT NOT NULL,
     description TEXT,
     send_date TEXT NOT NULL,
+    product_url TEXT,
+    done INTEGER DEFAULT 0,
     created_by INTEGER NOT NULL,
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (created_by) REFERENCES users(id)
@@ -54,6 +56,11 @@ db.exec(`
     received_at TEXT DEFAULT (datetime('now'))
   );
 `);
+
+// Migrate tasks table for deployments without product_url column
+const taskCols = db.prepare('PRAGMA table_info(tasks)').all().map((c) => c.name);
+if (!taskCols.includes('product_url')) db.exec('ALTER TABLE tasks ADD COLUMN product_url TEXT');
+if (!taskCols.includes('done'))        db.exec('ALTER TABLE tasks ADD COLUMN done INTEGER DEFAULT 0');
 
 // Migrate inbox_items for deployments that have the old schema
 const inboxCols = db.prepare("PRAGMA table_info(inbox_items)").all().map((c) => c.name);

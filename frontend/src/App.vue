@@ -6,6 +6,7 @@
         <router-link to="/">Dashboard</router-link>
         <router-link to="/tasks">Tasks</router-link>
         <router-link to="/inbox">Inbox <span v-if="inboxCount > 0" class="inbox-badge">{{ inboxCount }}</span></router-link>
+        <router-link to="/roundup">Roundup</router-link>
         <router-link to="/settings">Settings</router-link>
       </div>
       <div class="nav-user">

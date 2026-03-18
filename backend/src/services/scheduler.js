@@ -48,7 +48,10 @@ async function sendDailyEmail() {
       return;
     }
 
-    await sendTaskReminderEmail(recipients, tasks);
+    const regularTasks = tasks.filter((t) => !t.product_url);
+    const shopifyTasks = tasks.filter((t) => t.product_url);
+
+    await sendTaskReminderEmail(recipients, regularTasks, shopifyTasks, today);
     console.log(`Scheduler: Sent reminder for ${tasks.length} tasks to ${recipients.length} recipients.`);
   } catch (err) {
     console.error('Scheduler: Failed to send daily email:', err.message);
