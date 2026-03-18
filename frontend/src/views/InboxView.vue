@@ -131,7 +131,7 @@ function initDraft(item) {
   const age = daysSince(item.received_at);
   drafts[item.id] = {
     title: item.product_name,
-    description: `change price, listing was made ${date.now()}}`,
+    description: `change price, listing was made ${formatDate(item.received_at)}`,
     send_date: '',
     activePreset: null,
   };
