@@ -36,16 +36,7 @@
             :class="{ done: task.done }"
             @click="toggle(task)"
           >
-            <input type="checkbox" :checked="!!task.done" @change.stop="toggle(task)" />
-            <div class="roundup-text">
-              <div class="roundup-title">{{ task.title }}</div>
-              <div v-if="task.description" class="roundup-desc">{{ task.description }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Shopify tasks -->
+            <input type="checkbox" :checked="!!task.done" @click.stop="toggle(task)" />
       <div v-if="shopifyTasks.length" style="margin-top: 20px;">
         <h2 class="section-heading">Shopify Listings</h2>
         <div class="card task-list">
@@ -56,11 +47,7 @@
             :class="{ done: task.done }"
             @click="toggle(task)"
           >
-            <input type="checkbox" :checked="!!task.done" @change.stop="toggle(task)" />
-            <div class="roundup-text">
-              <div class="roundup-title">{{ task.title }}</div>
-              <div v-if="task.description" class="roundup-desc">{{ task.description }}</div>
-              <a
+            <input type="checkbox" :checked="!!task.done" @click.stop="toggle(task)" />
                 v-if="task.product_url"
                 :href="task.product_url"
                 target="_blank"
