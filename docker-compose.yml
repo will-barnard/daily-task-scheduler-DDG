@@ -13,15 +13,22 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
     volumes:
       - app-data:/app/data
+    networks:
+      - internal
     restart: unless-stopped
 
   frontend:
     build: ./frontend
     expose:
       - "80"
+    networks:
+      - internal
     depends_on:
       - backend
     restart: unless-stopped
+
+networks:
+  internal:
 
 volumes:
   app-data:
