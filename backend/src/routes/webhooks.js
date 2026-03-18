@@ -4,6 +4,9 @@ const db = require('../db');
 
 const router = express.Router();
 
+// Parse JSON body regardless of Content-Type (Shopify Flow may send text/plain or no content-type)
+router.use(express.json({ type: '*/*' }));
+
 // Shopify Flow sends the secret in the X-Webhook-Secret header.
 // Set SHOPIFY_WEBHOOK_SECRET in your .env / Beachhead global env vars.
 // If unset, verification is skipped (useful while testing).
@@ -25,7 +28,7 @@ function verifySecret(req) {
 // Shopify Flow HTTP action endpoint.
 // Configure your Flow action to POST to: /webhooks/shopify
 // Add header:  X-Webhook-Secret: <your secret>
-// Body (JSON): { "product_name": "...", "edit_url": "..." }
+// Body (JSON): { "product_name": "...", "product_url": "...", "product_id": "...", "condition": "..." }
 router.post('/shopify', (req, res) => {
   if (!verifySecret(req)) {
     console.warn('[Shopify Flow] Invalid or missing X-Webhook-Secret — request rejected');
@@ -37,6 +40,11 @@ router.post('/shopify', (req, res) => {
   // Still logging raw JSON so you can verify the shape coming from Flow
   console.log('[Shopify Flow] Incoming payload:');
   console.log(JSON.stringify(payload, null, 2));
+
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    console.warn('[Shopify Flow] Body was not a JSON object — check Content-Type from Flow');
+    return res.status(400).json({ error: 'JSON object body required' });
+  }
 
   const { product_name, product_url, product_id, condition } = payload;
 

@@ -14,10 +14,12 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
-app.use(express.json());
 
-// Webhooks — no auth middleware, secret verified inside the handler
+// Webhooks — registered BEFORE express.json() so the router's own parser
+// runs on the unconsumed stream. Shopify Flow may omit Content-Type: application/json.
 app.use('/webhooks', webhookRoutes);
+
+app.use(express.json());
 
 // API routes
 app.use('/api/auth', authRoutes);
