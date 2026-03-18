@@ -44,6 +44,13 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS inbox_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_name TEXT NOT NULL,
+    edit_url TEXT,
+    received_at TEXT DEFAULT (datetime('now'))
+  );
 `);
 
 // Seed default super admin if not exists

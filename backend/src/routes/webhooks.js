@@ -1,49 +1,56 @@
 const express = require('express');
 const crypto = require('crypto');
+const db = require('../db');
 
 const router = express.Router();
 
-// Shopify sends HMAC-SHA256 of the raw body in X-Shopify-Hmac-Sha256 (base64).
-// Set SHOPIFY_WEBHOOK_SECRET in your .env to enable verification.
-// While iterating, leave it unset to skip verification and just log payloads.
-function verifyShopifyHmac(req) {
+// Shopify Flow sends the secret in the X-Webhook-Secret header.
+// Set SHOPIFY_WEBHOOK_SECRET in your .env / Beachhead global env vars.
+// If unset, verification is skipped (useful while testing).
+function verifySecret(req) {
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
-  if (!secret) return true; // verification disabled
+  if (!secret) return true;
 
-  const hmacHeader = req.get('X-Shopify-Hmac-Sha256');
-  if (!hmacHeader) return false;
+  const provided = req.get('X-Webhook-Secret');
+  if (!provided) return false;
 
-  const digest = crypto
-    .createHmac('sha256', secret)
-    .update(req.body) // req.body is a Buffer when using express.raw()
-    .digest('base64');
-
-  return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(hmacHeader));
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(secret));
+  } catch {
+    return false;
+  }
 }
 
-// Single handler for all Shopify webhook topics.
-// Point your Shopify webhooks at:  POST /webhooks/shopify
-router.post('/shopify', express.raw({ type: 'application/json' }), (req, res) => {
-  if (!verifyShopifyHmac(req)) {
-    console.warn('[Shopify Webhook] Invalid HMAC signature — request rejected');
-    return res.status(401).json({ error: 'Invalid signature' });
+// Shopify Flow HTTP action endpoint.
+// Configure your Flow action to POST to: /webhooks/shopify
+// Add header:  X-Webhook-Secret: <your secret>
+// Body (JSON): { "product_name": "...", "edit_url": "..." }
+router.post('/shopify', (req, res) => {
+  if (!verifySecret(req)) {
+    console.warn('[Shopify Flow] Invalid or missing X-Webhook-Secret — request rejected');
+    return res.status(401).json({ error: 'Invalid secret' });
   }
 
-  const topic = req.get('X-Shopify-Topic') || 'unknown';
-  const shop = req.get('X-Shopify-Shop-Domain') || 'unknown';
+  const payload = req.body;
 
-  let payload;
-  try {
-    payload = JSON.parse(req.body.toString('utf8'));
-  } catch {
-    console.error('[Shopify Webhook] Failed to parse JSON body');
-    return res.status(400).json({ error: 'Invalid JSON' });
-  }
-
-  console.log(`[Shopify Webhook] topic=${topic} shop=${shop}`);
+  // Still logging raw JSON so you can verify the shape coming from Flow
+  console.log('[Shopify Flow] Incoming payload:');
   console.log(JSON.stringify(payload, null, 2));
 
-  // Shopify requires a 200 response quickly or it will retry
+  const { product_name, edit_url } = payload;
+
+  if (!product_name) {
+    console.warn('[Shopify Flow] Missing product_name in payload');
+    return res.status(400).json({ error: 'product_name is required' });
+  }
+
+  db.prepare('INSERT INTO inbox_items (product_name, edit_url) VALUES (?, ?)').run(
+    product_name,
+    edit_url || null
+  );
+
+  console.log(`[Shopify Flow] Added "${product_name}" to inbox`);
   res.status(200).json({ received: true });
 });
 

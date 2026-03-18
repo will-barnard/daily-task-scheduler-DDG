@@ -27,6 +27,12 @@ const routes = [
     meta: { auth: true },
   },
   {
+    path: '/inbox',
+    name: 'Inbox',
+    component: () => import('../views/InboxView.vue'),
+    meta: { auth: true },
+  },
+  {
     path: '/settings',
     name: 'Settings',
     component: () => import('../views/SettingsView.vue'),

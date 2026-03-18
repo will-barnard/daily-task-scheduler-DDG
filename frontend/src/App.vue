@@ -5,6 +5,7 @@
       <div class="nav-links">
         <router-link to="/">Dashboard</router-link>
         <router-link to="/tasks">Tasks</router-link>
+        <router-link to="/inbox">Inbox <span v-if="inboxCount > 0" class="inbox-badge">{{ inboxCount }}</span></router-link>
         <router-link to="/settings">Settings</router-link>
       </div>
       <div class="nav-user">
@@ -21,9 +22,29 @@
 <script setup>
 import { useAuthStore } from './stores/auth';
 import { useRouter } from 'vue-router';
+import { ref, onMounted, onUnmounted } from 'vue';
+import api from './api';
 
 const auth = useAuthStore();
 const router = useRouter();
+const inboxCount = ref(0);
+
+async function refreshInboxCount() {
+  if (!auth.isLoggedIn) return;
+  try {
+    const { data } = await api.get('/inbox');
+    inboxCount.value = data.length;
+  } catch {
+    // non-critical
+  }
+}
+
+let pollInterval = null;
+onMounted(() => {
+  refreshInboxCount();
+  pollInterval = setInterval(refreshInboxCount, 30000);
+});
+onUnmounted(() => clearInterval(pollInterval));
 
 function logout() {
   auth.logout();
@@ -77,6 +98,22 @@ body {
 .nav-links a:hover,
 .nav-links a.router-link-active {
   color: white;
+}
+
+.inbox-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ef4444;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 9999px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 4px;
+  vertical-align: middle;
 }
 
 .nav-user {
