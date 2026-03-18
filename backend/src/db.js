@@ -37,9 +37,12 @@ db.exec(`
     send_date TEXT NOT NULL,
     product_url TEXT,
     done INTEGER DEFAULT 0,
+    in_progress INTEGER DEFAULT 0,
+    claimed_by INTEGER,
     created_by INTEGER NOT NULL,
     created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (created_by) REFERENCES users(id)
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (claimed_by) REFERENCES users(id)
   );
 
   CREATE TABLE IF NOT EXISTS settings (
@@ -59,8 +62,10 @@ db.exec(`
 
 // Migrate tasks table for deployments without product_url column
 const taskCols = db.prepare('PRAGMA table_info(tasks)').all().map((c) => c.name);
-if (!taskCols.includes('product_url')) db.exec('ALTER TABLE tasks ADD COLUMN product_url TEXT');
-if (!taskCols.includes('done'))        db.exec('ALTER TABLE tasks ADD COLUMN done INTEGER DEFAULT 0');
+if (!taskCols.includes('product_url'))  db.exec('ALTER TABLE tasks ADD COLUMN product_url TEXT');
+if (!taskCols.includes('done'))         db.exec('ALTER TABLE tasks ADD COLUMN done INTEGER DEFAULT 0');
+if (!taskCols.includes('in_progress'))  db.exec('ALTER TABLE tasks ADD COLUMN in_progress INTEGER DEFAULT 0');
+if (!taskCols.includes('claimed_by'))   db.exec('ALTER TABLE tasks ADD COLUMN claimed_by INTEGER');
 
 // Migrate inbox_items for deployments that have the old schema
 const inboxCols = db.prepare("PRAGMA table_info(inbox_items)").all().map((c) => c.name);

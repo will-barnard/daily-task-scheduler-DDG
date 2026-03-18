@@ -10,8 +10,29 @@ router.get('/by-date/:date', authenticate, (req, res) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
   }
-  const tasks = db.prepare('SELECT * FROM tasks WHERE send_date = ? ORDER BY created_at ASC').all(date);
+  const tasks = db.prepare(`
+    SELECT t.*, u.name AS claimed_by_name
+    FROM tasks t
+    LEFT JOIN users u ON t.claimed_by = u.id
+    WHERE t.send_date = ?
+    ORDER BY t.created_at ASC
+  `).all(date);
   res.json(tasks);
+});
+
+// Claim / unclaim in-progress
+router.patch('/:id/in-progress', authenticate, (req, res) => {
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+  if (!task) return res.status(404).json({ error: 'Task not found' });
+
+  const inProgress = req.body.in_progress ? 1 : 0;
+  const claimedBy = inProgress ? req.user.id : null;
+  db.prepare('UPDATE tasks SET in_progress = ?, claimed_by = ? WHERE id = ?').run(inProgress, claimedBy, req.params.id);
+
+  const claimer = inProgress
+    ? db.prepare('SELECT name FROM users WHERE id = ?').get(req.user.id)
+    : null;
+  res.json({ id: task.id, in_progress: inProgress, claimed_by: claimedBy, claimed_by_name: claimer?.name || null });
 });
 
 // Toggle done status

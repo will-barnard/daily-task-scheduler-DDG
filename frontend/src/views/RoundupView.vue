@@ -33,14 +33,22 @@
             v-for="task in regularTasks"
             :key="task.id"
             class="roundup-row"
-            :class="{ done: task.done }"
+            :class="{ done: task.done, 'in-progress': task.in_progress && !task.done }"
             @click="toggle(task)"
           >
             <input type="checkbox" :checked="!!task.done" @click.stop="toggle(task)" />
             <div class="roundup-text">
               <div class="roundup-title">{{ task.title }}</div>
               <div v-if="task.description" class="roundup-desc">{{ task.description }}</div>
+              <span v-if="task.in_progress && !task.done" class="in-progress-badge">
+                In progress · {{ task.claimed_by_name }}
+              </span>
             </div>
+            <button
+              class="btn btn-sm claim-btn"
+              :class="{ 'claim-btn-active': task.in_progress }"
+              @click.stop="claimTask(task)"
+            >{{ task.in_progress ? 'Unclaim' : 'In Progress' }}</button>
           </div>
         </div>
       </div>
@@ -53,13 +61,16 @@
             v-for="task in shopifyTasks"
             :key="task.id"
             class="roundup-row"
-            :class="{ done: task.done }"
+            :class="{ done: task.done, 'in-progress': task.in_progress && !task.done }"
             @click="toggle(task)"
           >
             <input type="checkbox" :checked="!!task.done" @click.stop="toggle(task)" />
             <div class="roundup-text">
               <div class="roundup-title">{{ task.title }}</div>
               <div v-if="task.description" class="roundup-desc">{{ task.description }}</div>
+              <span v-if="task.in_progress && !task.done" class="in-progress-badge">
+                In progress · {{ task.claimed_by_name }}
+              </span>
               <a
                 v-if="task.product_url"
                 :href="task.product_url"
@@ -69,6 +80,11 @@
                 @click.stop
               >Open in Shopify →</a>
             </div>
+            <button
+              class="btn btn-sm claim-btn"
+              :class="{ 'claim-btn-active': task.in_progress }"
+              @click.stop="claimTask(task)"
+            >{{ task.in_progress ? 'Unclaim' : 'In Progress' }}</button>
           </div>
         </div>
       </div>
@@ -79,9 +95,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
 import api from '../api';
 
 const route = useRoute();
+const auth = useAuthStore();
 
 function todayStr() {
   return new Date().toISOString().split('T')[0];
@@ -104,11 +122,29 @@ async function loadTasks() {
   try {
     const { data } = await api.get(`/tasks/by-date/${date.value}`);
     // Normalise SQLite integer booleans
-    tasks.value = data.map((t) => ({ ...t, done: !!t.done }));
+    tasks.value = data.map((t) => ({ ...t, done: !!t.done, in_progress: !!t.in_progress }));
   } catch {
     error.value = 'Failed to load tasks';
   } finally {
     loading.value = false;
+  }
+}
+
+async function claimTask(task) {
+  const newInProgress = !task.in_progress;
+  const prevInProgress = task.in_progress;
+  const prevName = task.claimed_by_name;
+
+  // Optimistic update
+  task.in_progress = newInProgress;
+  task.claimed_by_name = newInProgress ? auth.user?.name : null;
+
+  try {
+    await api.patch(`/tasks/${task.id}/in-progress`, { in_progress: newInProgress });
+  } catch {
+    task.in_progress = prevInProgress;
+    task.claimed_by_name = prevName;
+    error.value = 'Failed to update task';
   }
 }
 
@@ -235,5 +271,49 @@ onMounted(loadTasks);
 
 .roundup-row.done .roundup-desc {
   color: #d1d5db;
+}
+
+.roundup-row.in-progress {
+  background: #fffbeb;
+}
+
+.in-progress-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.claim-btn {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.claim-btn:hover {
+  background: #f9fafb;
+}
+
+.claim-btn-active {
+  border-color: #f59e0b;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.claim-btn-active:hover {
+  background: #fde68a;
 }
 </style>
