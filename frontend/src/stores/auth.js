@@ -3,26 +3,28 @@ import api from '../api';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    token: localStorage.getItem('token') || null,
-    user: JSON.parse(localStorage.getItem('user') || 'null'),
+    user: null,
+    loaded: false,
   }),
   getters: {
-    isLoggedIn: (state) => !!state.token,
+    isLoggedIn: (state) => !!state.user,
     isSuperAdmin: (state) => state.user?.role === 'superadmin',
   },
   actions: {
-    async login(email, password) {
-      const { data } = await api.post('/auth/login', { email, password });
-      this.token = data.token;
-      this.user = data.user;
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+    async fetchUser() {
+      try {
+        const { data } = await api.get('/auth/me');
+        this.user = data;
+      } catch {
+        this.user = null;
+      } finally {
+        this.loaded = true;
+      }
     },
     logout() {
-      this.token = null;
       this.user = null;
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Redirect to brew-auth login after clearing state
+      window.location.href = 'https://auth.drugansdrums.com/login?return_url=' + encodeURIComponent(window.location.origin);
     },
   },
 });

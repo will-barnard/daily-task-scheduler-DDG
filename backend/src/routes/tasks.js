@@ -10,13 +10,7 @@ router.get('/by-date/:date', authenticate, (req, res) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
   }
-  const tasks = db.prepare(`
-    SELECT t.*, u.name AS claimed_by_name
-    FROM tasks t
-    LEFT JOIN users u ON t.claimed_by = u.id
-    WHERE t.send_date = ?
-    ORDER BY t.created_at ASC
-  `).all(date);
+  const tasks = db.prepare('SELECT * FROM tasks WHERE send_date = ? ORDER BY created_at ASC').all(date);
   res.json(tasks);
 });
 
@@ -27,12 +21,10 @@ router.patch('/:id/in-progress', authenticate, (req, res) => {
 
   const inProgress = req.body.in_progress ? 1 : 0;
   const claimedBy = inProgress ? req.user.id : null;
-  db.prepare('UPDATE tasks SET in_progress = ?, claimed_by = ? WHERE id = ?').run(inProgress, claimedBy, req.params.id);
+  const claimedByName = inProgress ? req.user.name : null;
+  db.prepare('UPDATE tasks SET in_progress = ?, claimed_by = ?, claimed_by_name = ? WHERE id = ?').run(inProgress, claimedBy, claimedByName, req.params.id);
 
-  const claimer = inProgress
-    ? db.prepare('SELECT name FROM users WHERE id = ?').get(req.user.id)
-    : null;
-  res.json({ id: task.id, in_progress: inProgress, claimed_by: claimedBy, claimed_by_name: claimer?.name || null });
+  res.json({ id: task.id, in_progress: inProgress, claimed_by: claimedBy, claimed_by_name: claimedByName });
 });
 
 // Toggle done status
@@ -47,12 +39,7 @@ router.patch('/:id/done', authenticate, (req, res) => {
 
 // Get all tasks
 router.get('/', authenticate, (req, res) => {
-  const tasks = db.prepare(`
-    SELECT t.*, u.name as created_by_name 
-    FROM tasks t 
-    JOIN users u ON t.created_by = u.id 
-    ORDER BY t.send_date ASC
-  `).all();
+  const tasks = db.prepare('SELECT * FROM tasks ORDER BY send_date ASC').all();
   res.json(tasks);
 });
 
@@ -64,8 +51,8 @@ router.post('/', authenticate, (req, res) => {
   }
 
   const result = db.prepare(
-    'INSERT INTO tasks (title, description, send_date, created_by) VALUES (?, ?, ?, ?)'
-  ).run(title, description || '', send_date, req.user.id);
+    'INSERT INTO tasks (title, description, send_date, created_by, created_by_name) VALUES (?, ?, ?, ?, ?)'
+  ).run(title, description || '', send_date, req.user.id, req.user.name);
 
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(task);

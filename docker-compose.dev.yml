@@ -9,7 +9,9 @@ services:
       - NODE_ENV=development
       - DB_PATH=/app/data/data.db
       - RESEND_API_KEY=${RESEND_API_KEY}
-      - JWT_SECRET=${JWT_SECRET:-dev-secret-key}
+      - AUTH_JWKS_URL=${AUTH_JWKS_URL:-https://auth.drugansdrums.com/.well-known/jwks.json}
+      - AUTH_ISSUER=${AUTH_ISSUER:-https://auth.drugansdrums.com}
+      - AUTH_COOKIE_NAME=${AUTH_COOKIE_NAME:-brew_token}
       - FROM_EMAIL=${FROM_EMAIL:-noreply@drugansdrums.com}
       - FRONTEND_URL=http://localhost:5173
     volumes:
