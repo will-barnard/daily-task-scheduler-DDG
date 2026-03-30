@@ -22,10 +22,12 @@
 
 <script setup>
 import { useAuthStore } from './stores/auth';
+import { useRouter } from 'vue-router';
 import { ref, onMounted, onUnmounted } from 'vue';
 import api from './api';
 
 const auth = useAuthStore();
+const router = useRouter();
 const inboxCount = ref(0);
 
 async function refreshInboxCount() {
@@ -47,6 +49,7 @@ onUnmounted(() => clearInterval(pollInterval));
 
 function logout() {
   auth.logout();
+  router.push('/login');
 }
 </script>
 

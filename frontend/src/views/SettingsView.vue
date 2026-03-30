@@ -64,6 +64,51 @@
         {{ sendingTest ? 'Sending...' : 'Send Test Email' }}
       </button>
     </div>
+
+    <!-- Invite User (Super Admin Only) -->
+    <div v-if="auth.isSuperAdmin" class="card">
+      <h2>Invite User</h2>
+      <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
+        Generate a signup link for a new user.
+      </p>
+      <div style="display: flex; gap: 8px; align-items: end;">
+        <div class="form-group" style="margin-bottom: 0; flex: 1;">
+          <input v-model="inviteEmail" type="email" placeholder="user@example.com" />
+        </div>
+        <button class="btn btn-primary" @click="createInvite" :disabled="inviting">
+          {{ inviting ? 'Creating...' : 'Create Invite' }}
+        </button>
+      </div>
+      <div v-if="inviteLink" class="invite-link-box">
+        <p style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">Share this link:</p>
+        <code>{{ inviteLink }}</code>
+        <button class="btn btn-secondary btn-sm" style="margin-top: 8px;" @click="copyLink">Copy</button>
+      </div>
+    </div>
+
+    <!-- Users List (Super Admin Only) -->
+    <div v-if="auth.isSuperAdmin" class="card">
+      <h2>Users</h2>
+      <table v-if="users.length">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="user in users" :key="user.id">
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.role === 'superadmin' ? 'Super Admin' : 'User' }}</td>
+            <td>{{ user.created_at?.split('T')[0] || user.created_at }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else style="color: #6b7280;">No users found.</p>
+    </div>
   </div>
 </template>
 
@@ -145,6 +190,10 @@ const success = ref('');
 const savingRecipients = ref(false);
 const savingTime = ref(false);
 const sendingTest = ref(false);
+const inviteEmail = ref('');
+const inviteLink = ref('');
+const users = ref([]);
+const inviting = ref(false);
 
 function clearMessages() {
   setTimeout(() => {
@@ -162,6 +211,16 @@ async function loadSettings() {
     if (data.send_timezone) sendTimezone.value = data.send_timezone;
   } catch {
     error.value = 'Failed to load settings';
+  }
+}
+
+async function loadUsers() {
+  if (!auth.isSuperAdmin) return;
+  try {
+    const { data } = await api.get('/auth/users');
+    users.value = data;
+  } catch {
+    // Not critical
   }
 }
 
@@ -217,8 +276,34 @@ async function sendTestEmail() {
   }
 }
 
+async function createInvite() {
+  if (!inviteEmail.value) return;
+  inviting.value = true;
+  error.value = '';
+  inviteLink.value = '';
+  try {
+    const { data } = await api.post('/auth/invite', { email: inviteEmail.value });
+    inviteLink.value = data.link;
+    inviteEmail.value = '';
+    success.value = 'Invite created';
+    await loadUsers();
+    clearMessages();
+  } catch (err) {
+    error.value = err.response?.data?.error || 'Failed to create invite';
+  } finally {
+    inviting.value = false;
+  }
+}
+
+function copyLink() {
+  navigator.clipboard.writeText(inviteLink.value);
+  success.value = 'Link copied to clipboard';
+  clearMessages();
+}
+
 onMounted(() => {
   loadSettings();
+  loadUsers();
 });
 </script>
 
@@ -243,4 +328,18 @@ onMounted(() => {
   font-size: 14px;
 }
 
+.invite-link-box {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.invite-link-box code {
+  display: block;
+  word-break: break-all;
+  font-size: 13px;
+  color: #2563eb;
+}
 </style>
