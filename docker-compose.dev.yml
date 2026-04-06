@@ -32,6 +32,12 @@ services:
     depends_on:
       - backend
 
+networks:
+  default:
+    name: dts-dev-internal
+
 volumes:
   app-data-dev:
+    name: dts-app-data-dev
   frontend-node-modules:
+    name: dts-frontend-node-modules

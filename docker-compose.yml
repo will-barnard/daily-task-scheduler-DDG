@@ -29,6 +29,7 @@ services:
 
 networks:
   internal:
+    name: dts-internal
 
 volumes:
   app-data:
