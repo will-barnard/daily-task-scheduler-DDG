@@ -1,5 +1,5 @@
 services:
-  backend:
+  dts-backend:
     build: ./backend
     command: npm run dev
     ports:
@@ -17,7 +17,7 @@ services:
       - app-data-dev:/app/data
     restart: unless-stopped
 
-  frontend:
+  dts-frontend:
     image: node:20-alpine
     working_dir: /app
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
@@ -25,12 +25,12 @@ services:
       - "5173:5173"
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://backend:3001
+      - VITE_API_URL=http://dts-backend:3001
     volumes:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules
     depends_on:
-      - backend
+      - dts-backend
 
 networks:
   default:

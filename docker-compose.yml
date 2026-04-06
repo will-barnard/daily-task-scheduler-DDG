@@ -1,5 +1,5 @@
 services:
-  backend:
+  dts-backend:
     build: ./backend
     expose:
       - "3001"
@@ -17,14 +17,14 @@ services:
       - internal
     restart: unless-stopped
 
-  frontend:
+  dts-frontend:
     build: ./frontend
     expose:
       - "80"
     networks:
       - internal
     depends_on:
-      - backend
+      - dts-backend
     restart: unless-stopped
 
 networks:

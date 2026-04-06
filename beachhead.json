@@ -1,4 +1,4 @@
 {
-  "public_service": "frontend",
+  "public_service": "dts-frontend",
   "public_port": "80"
 }
